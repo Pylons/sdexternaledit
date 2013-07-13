@@ -2,60 +2,116 @@ import itertools
 from zope.interface import Interface
 from pyramid.response import Response
 from pyramid.view import view_config
+from pyramid.httpexceptions import HTTPPreconditionFailed
 from substanced.locking import (
     could_lock_resource,
     discover_resource_locks,
+    LockError,
+    UnlockError,
+    lock_resource,
+    unlock_resource,
     )
 from substanced.util import chunks
 
 class IEdit(Interface):
     pass
 
-@view_config(
-    route_name='sdexternaledit',
-    request_method='GET',
-    permission='sdi.edit-properties',
-    http_cache=0,
-    )
-def edit(context, request):
-    adapter = request.registry.queryAdapter(context, IEdit)
-    if adapter is None:
-        adapter = FileEdit(context)
-    body, mimetype = adapter()
-    headers = {}
-    headers['url'] = request.current_route_url()
-    headers['meta_type'] = str(request.registry.content.typeof(context))
-    headers['title'] = context.__name__
-    headers['content_type'] = mimetype
-    headers['cookie'] = request.environ.get('HTTP_COOKIE', '')
-    headers['borrow_lock'] = str(
-        could_lock_resource(context, request.user) and 1 or 0
-        )
-    locks = discover_resource_locks(context)
-    if locks:
-        lock = locks[0]
-        headers['lock-token'] = lock.__name__
+class ExternalEditorViews(object):
+    def __init__(self, context, request):
+        self.context = context
+        self.request = request
 
-    headerlist = ['%s: %s\n' % (k, v) for k, v in sorted(headers.items())]
-    headerlist = [x.encode('utf-8') for x in headerlist]
-    if request.params.get('skip_data'):
-        return Response(app_iter=headerlist)
-    app_iter = itertools.chain(headerlist, ('\n',), body)
-    response = Response(
-        app_iter=app_iter,
-        content_type='application/x-zope-edit'
+    @view_config(
+        route_name='sdexternaledit',
+        request_method='GET',
+        permission='sdi.edit-properties',
+        http_cache=0,
         )
-    return response
+    def get(self):
+        request = self.request
+        context = self.context
+        adapter = request.registry.queryAdapter(context, IEdit)
+        if adapter is None:
+            adapter = FileEdit(context)
+        body, mimetype = adapter.get()
+        headers = {}
+        headers['url'] = request.current_route_url()
+        headers['meta_type'] = str(request.registry.content.typeof(context))
+        headers['title'] = context.__name__
+        headers['content_type'] = mimetype
+        headers['cookie'] = request.environ.get('HTTP_COOKIE', '')
+        headers['borrow_lock'] = str(
+            could_lock_resource(context, request.user) and 1 or 0
+            )
+        locks = discover_resource_locks(context)
+        if locks:
+            lock = locks[0]
+            headers['lock-token'] = lock.__name__
+
+        headerlist = ['%s: %s\n' % (k, v) for k, v in sorted(headers.items())]
+        headerlist = [x.encode('utf-8') for x in headerlist]
+        if request.params.get('skip_data'):
+            return Response(app_iter=headerlist)
+        app_iter = itertools.chain(headerlist, (b'\n',), body)
+        response = Response(
+            app_iter=app_iter,
+            content_type='application/x-zope-edit'
+            )
+        return response
+
+    @view_config(
+        route_name='sdexternaledit',
+        request_method='LOCK',
+        permission='sdi.lock',
+        http_cache=0,
+        )
+    def lock(self):
+        try:
+            lock = lock_resource(self.context, self.request.user)
+        except LockError:
+            return HTTPPreconditionFailed()
+        return Response('>opaquelocktoken:%s<' % lock.__name__)
+
+    @view_config(
+        route_name='sdexternaledit',
+        request_method='UNLOCK',
+        permission='sdi.lock',
+        http_cache=0,
+        )
+    def unlock(self):
+        try:
+            unlock_resource(self.context, self.request.user)
+        except UnlockError:
+            return HTTPPreconditionFailed()
+        return Response('OK')
+
+    @view_config(
+        route_name='sdexternaledit',
+        request_method='PUT',
+        permission='sdi.edit-properties',
+        http_cache=0,
+        )
+    def put(self):
+        request = self.request
+        context = self.context
+        adapter = request.registry.queryAdapter(context, IEdit)
+        if adapter is None:
+            adapter = FileEdit(context)
+        adapter.put(request.body_file)
+        return Response('OK')
 
 class FileEdit(object):
     def __init__(self, context):
         self.context = context
 
-    def __call__(self):
+    def get(self):
         return (
             chunks(open(self.context.blob.committed(), 'rb')),
             self.context.mimetype or 'application/octet-stream',
             )
+
+    def put(self, fp):
+        self.context.upload(fp)
     
 def includeme(config):
     prefix = config.registry.settings.get(
