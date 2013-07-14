@@ -1,6 +1,7 @@
 import itertools
 from zope.interface import Interface
 from pyramid.response import Response
+from pyramid.traversal import resource_path_tuple
 from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPPreconditionFailed
 from substanced.locking import (
@@ -12,6 +13,7 @@ from substanced.locking import (
     unlock_resource,
     )
 from substanced.util import chunks
+from substanced.sdi.views.folder import FolderContents
 
 class IEdit(Interface):
     pass
@@ -48,7 +50,7 @@ class ExternalEditorViews(object):
             lock = locks[0]
             headers['lock-token'] = lock.__name__
 
-        headerlist = ['%s: %s\n' % (k, v) for k, v in sorted(headers.items())]
+        headerlist = ['%s:%s\n' % (k, v) for k, v in sorted(headers.items())]
         headerlist = [x.encode('utf-8') for x in headerlist]
         if request.params.get('skip_data'):
             return Response(app_iter=headerlist)
@@ -70,7 +72,7 @@ class ExternalEditorViews(object):
             lock = lock_resource(self.context, self.request.user)
         except LockError:
             return HTTPPreconditionFailed()
-        return Response('>opaquelocktoken:%s<' % lock.__name__)
+        return Response(' >opaquelocktoken:%s<' % lock.__name__)
 
     @view_config(
         route_name='sdexternaledit',
@@ -121,4 +123,24 @@ def includeme(config):
         non_slash_appended = non_slash_appended[:-1]
     config.add_route('sdexternaledit',
                      pattern='%s/*traverse' % non_slash_appended)
+    class FolderContentsWithEditIcon(FolderContents):
+        def get_columns(self, resource):
+            columns = FolderContents.get_columns(self, resource)
+            if resource is None:
+                url = ''
+            else:
+                url = self.request.route_url(
+                    'sdexternaledit',
+                    traverse=resource_path_tuple(resource)
+                    )
+            value = '<a href="%s"><i class="icon-pencil"></a></i>' % url
+            columns.insert(0,
+                {'name': 'Edit',
+                 'value': value,
+                 'formatter': 'html',
+                 'width':50,}
+                )
+            return columns
+    config.add_folder_contents_views(cls=FolderContentsWithEditIcon)
     config.scan()
+
