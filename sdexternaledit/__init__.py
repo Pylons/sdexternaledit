@@ -136,7 +136,7 @@ def includeme(config):
             else:
                 url = self.request.route_url(
                     'sdexternaledit',
-                    traverse=resource_path_tuple(resource)
+                    traverse=resource_path_tuple(resource)[1:]
                     )
                 adapter = self.request.registry.queryMultiAdapter(
                     (resource, self.request), IEdit)
