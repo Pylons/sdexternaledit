@@ -131,25 +131,21 @@ def includeme(config):
     class FolderContentsWithEditIcon(FolderContents):
         def get_columns(self, resource):
             columns = FolderContents.get_columns(self, resource)
-            if resource is None:
-                value = ''
-            else:
-                url = self.request.route_url(
-                    'sdexternaledit',
-                    traverse=resource_path_tuple(resource)[1:]
-                    )
+            if resource is not None:
                 adapter = self.request.registry.queryMultiAdapter(
                     (resource, self.request), IEdit)
-                if adapter is None:
-                    value = ''
-                else:
-                    value = '<a href="%s"><i class="icon-pencil"></a></i>' % url
-            columns.insert(0,
-                {'name': 'Edit',
-                 'value': value,
-                 'formatter': 'html',
-                 'width':10,}
-                )
+                if adapter is not None:
+                    for column in columns:
+                        if column['name'] == 'Name':
+                            if column['formatter'] == 'html':
+                                url = self.request.route_url(
+                                    'sdexternaledit',
+                                    traverse=resource_path_tuple(resource)[1:]
+                                    )
+                                value = (' <a href="%s"><i class="icon-pencil">'
+                                         '</a></i>' % url)
+                                column['value'] = column['value'] + value
+                            break
             return columns
     config.add_folder_contents_views(cls=FolderContentsWithEditIcon)
     config.registry.registerAdapter(FileEdit, (IFile, Interface), IEdit)
