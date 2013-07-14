@@ -3,7 +3,10 @@ from zope.interface import Interface
 from pyramid.response import Response
 from pyramid.traversal import resource_path_tuple
 from pyramid.view import view_config
-from pyramid.httpexceptions import HTTPPreconditionFailed
+from pyramid.httpexceptions import (
+    HTTPPreconditionFailed,
+    HTTPNotFound,
+    )
 from substanced.locking import (
     could_lock_resource,
     discover_resource_locks,
@@ -13,6 +16,7 @@ from substanced.locking import (
     unlock_resource,
     )
 from substanced.util import chunks
+from substanced.interfaces import IFile
 from substanced.sdi.views.folder import FolderContents
 
 class IEdit(Interface):
@@ -32,9 +36,9 @@ class ExternalEditorViews(object):
     def get(self):
         request = self.request
         context = self.context
-        adapter = request.registry.queryAdapter(context, IEdit)
+        adapter = request.registry.queryMultiAdapter((context, request), IEdit)
         if adapter is None:
-            adapter = FileEdit(context)
+            return HTTPNotFound()
         body, mimetype = adapter.get()
         headers = {}
         headers['url'] = request.current_route_url()
@@ -96,15 +100,16 @@ class ExternalEditorViews(object):
     def put(self):
         request = self.request
         context = self.context
-        adapter = request.registry.queryAdapter(context, IEdit)
+        adapter = request.registry.queryMultiAdapter((context, request), IEdit)
         if adapter is None:
-            adapter = FileEdit(context)
+            return HTTPNotFound()
         adapter.put(request.body_file)
         return Response('OK')
 
 class FileEdit(object):
-    def __init__(self, context):
+    def __init__(self, context, request):
         self.context = context
+        self.request = request
 
     def get(self):
         return (
@@ -118,29 +123,35 @@ class FileEdit(object):
 def includeme(config):
     prefix = config.registry.settings.get(
         'sdexternaledit.prefix', '/externaledit')
-    non_slash_appended = prefix
-    while non_slash_appended.endswith('/'):
-        non_slash_appended = non_slash_appended[:-1]
-    config.add_route('sdexternaledit',
-                     pattern='%s/*traverse' % non_slash_appended)
+    non_slash_appended = prefix.rstrip('/')
+    config.add_route(
+        'sdexternaledit',
+        pattern='%s/*traverse' % non_slash_appended
+        )
     class FolderContentsWithEditIcon(FolderContents):
         def get_columns(self, resource):
             columns = FolderContents.get_columns(self, resource)
             if resource is None:
-                url = ''
+                value = ''
             else:
                 url = self.request.route_url(
                     'sdexternaledit',
                     traverse=resource_path_tuple(resource)
                     )
-            value = '<a href="%s"><i class="icon-pencil"></a></i>' % url
+                adapter = self.request.registry.queryMultiAdapter(
+                    (resource, self.request), IEdit)
+                if adapter is None:
+                    value = ''
+                else:
+                    value = '<a href="%s"><i class="icon-pencil"></a></i>' % url
             columns.insert(0,
                 {'name': 'Edit',
                  'value': value,
                  'formatter': 'html',
-                 'width':50,}
+                 'width':10,}
                 )
             return columns
     config.add_folder_contents_views(cls=FolderContentsWithEditIcon)
+    config.registry.registerAdapter(FileEdit, (IFile, Interface), IEdit)
     config.scan()
 
