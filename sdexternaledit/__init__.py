@@ -119,8 +119,37 @@ class FileEdit(object):
 
     def put(self, fp):
         self.context.upload(fp)
-    
-def includeme(config):
+
+class FolderContentsWithEditIcon(FolderContents):
+    def get_columns(self, resource):
+        columns = FolderContents.get_columns(self, resource)
+        if resource is not None:
+            adapter = self.request.registry.queryMultiAdapter(
+                (resource, self.request), IEdit)
+            if adapter is not None:
+                for column in columns:
+                    if column['name'] == 'Name':
+                        if column['formatter'] == 'html':
+                            url = self.request.route_url(
+                                'sdexternaledit',
+                                traverse=resource_path_tuple(resource)[1:]
+                                )
+                            value = (' <a href="%s"><i class="icon-pencil">'
+                                     '</a></i>' % url)
+                            column['value'] = column['value'] + value
+                        break
+        return columns
+        
+def includeme(config): # pragma: no cover
+    config.includepath = ()
+    # I am sorry for the above hack.  But it means that the statements
+    # (oparticularly the add_folder_contents_views statement) made in this
+    # includeme will not conflict with (otherwise conflicting) statements made
+    # in the include of substanced.  We want to override the default
+    # folder contents views, and the only other way to do that is to document
+    # that the user should config.commit() before including this package,
+    # which is awkward to document.  Maybe we can find a better way in the
+    # future.
     prefix = config.registry.settings.get(
         'sdexternaledit.prefix', '/externaledit')
     non_slash_appended = prefix.rstrip('/')
@@ -128,25 +157,6 @@ def includeme(config):
         'sdexternaledit',
         pattern='%s/*traverse' % non_slash_appended
         )
-    class FolderContentsWithEditIcon(FolderContents):
-        def get_columns(self, resource):
-            columns = FolderContents.get_columns(self, resource)
-            if resource is not None:
-                adapter = self.request.registry.queryMultiAdapter(
-                    (resource, self.request), IEdit)
-                if adapter is not None:
-                    for column in columns:
-                        if column['name'] == 'Name':
-                            if column['formatter'] == 'html':
-                                url = self.request.route_url(
-                                    'sdexternaledit',
-                                    traverse=resource_path_tuple(resource)[1:]
-                                    )
-                                value = (' <a href="%s"><i class="icon-pencil">'
-                                         '</a></i>' % url)
-                                column['value'] = column['value'] + value
-                            break
-            return columns
     config.add_folder_contents_views(cls=FolderContentsWithEditIcon)
     config.registry.registerAdapter(FileEdit, (IFile, Interface), IEdit)
     config.scan()
