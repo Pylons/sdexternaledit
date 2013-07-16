@@ -141,11 +141,11 @@ class FolderContentsWithEditIcon(FolderContents):
         return columns
         
 def includeme(config): # pragma: no cover
-    config.includepath = ()
+    config.includepath = ('substanced:includeme',)
     # I am sorry for the above hack.  But it means that the statements
     # (oparticularly the add_folder_contents_views statement) made in this
     # includeme will not conflict with (otherwise conflicting) statements made
-    # in the include of substanced.  We want to override the default
+    # via config.include('substanced').  We want to override the default
     # folder contents views, and the only other way to do that is to document
     # that the user should config.commit() before including this package,
     # which is awkward to document.  Maybe we can find a better way in the
