@@ -55,6 +55,18 @@ class ExternalEditorViews(object):
             headers['lock-token'] = lock.__name__
 
         headerlist = ['%s:%s\n' % (k, v) for k, v in sorted(headers.items())]
+        headerlist.insert(0, 'application:zopeedit\n') 
+        # Rationale for inserting "application:zopeedit" at position zero in
+        # file: it can be used for desktop environment magic file detection.
+        #
+        # The browser's content-type is ignored in systems like Chromium, which
+        # delegate to xdg-open to figure out the application to open.  xdg-open
+        # isn't provided the browser content-type at all, and dead reckons
+        # using the shared mime info provided by the OS, which is why we have
+        # to register it here.
+        #
+        # The value of "application:zopeedit" is not used by the client at all,
+        # but it is compatible with the format expected by the client.
         headerlist = [x.encode('utf-8') for x in headerlist]
         if request.params.get('skip_data'):
             return Response(app_iter=headerlist)
