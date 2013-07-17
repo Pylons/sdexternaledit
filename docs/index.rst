@@ -134,7 +134,7 @@ following contents (this will require root privilege):
      <mime-type type="application/x-zope-edit">
        <comment>Zope external editor</comment>
        <glob pattern="*.zem"/>
-       <magic priority="20">
+       <magic priority="100">
          <match value="application:zopeedit" type="string" offset="0"/>
        </magic>
      </mime-type>
