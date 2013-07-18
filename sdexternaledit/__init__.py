@@ -32,6 +32,7 @@ class ExternalEditorViews(object):
         request_method='GET',
         permission='sdi.edit-properties',
         http_cache=0,
+        name='edit.zem',
         )
     def get(self):
         request = self.request
@@ -62,8 +63,10 @@ class ExternalEditorViews(object):
         # The browser's content-type is ignored in systems like Chromium, which
         # delegate to xdg-open to figure out the application to open.  xdg-open
         # isn't provided the browser content-type at all, and dead reckons
-        # using the shared mime info provided by the OS, which is why we have
-        # to register it here.
+        # using the shared mime info provided by the OS.  Under normal
+        # circumstances, the .zem extension will be the trigger, but under
+        # custom circumstances where the .zem extension is not used,
+        # magic can be used to determine the content type.
         #
         # The value of "application:zopeedit" is not used by the client at all,
         # but it is compatible with the format expected by the client.
@@ -82,6 +85,7 @@ class ExternalEditorViews(object):
         request_method='LOCK',
         permission='sdi.lock',
         http_cache=0,
+        name='edit.zem',
         )
     def lock(self):
         try:
@@ -95,6 +99,7 @@ class ExternalEditorViews(object):
         request_method='UNLOCK',
         permission='sdi.lock',
         http_cache=0,
+        name='edit.zem',
         )
     def unlock(self):
         try:
@@ -108,6 +113,7 @@ class ExternalEditorViews(object):
         request_method='PUT',
         permission='sdi.edit-properties',
         http_cache=0,
+        name='edit.zem',
         )
     def put(self):
         request = self.request
@@ -142,9 +148,11 @@ class FolderContentsWithEditIcon(FolderContents):
                 for column in columns:
                     if column['name'] == 'Name':
                         if column['formatter'] == 'html':
+                            resource_path = resource_path_tuple(resource)[1:]
+                            traverse= resource_path + ('edit.zem',)
                             url = self.request.route_url(
                                 'sdexternaledit',
-                                traverse=resource_path_tuple(resource)[1:]
+                                traverse=traverse,
                                 )
                             value = (' <a href="%s"><i class="icon-pencil">'
                                      '</a></i>' % url)

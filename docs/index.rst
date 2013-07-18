@@ -60,37 +60,32 @@ be started when the file is downloaded.
 Ubuntu 12.04 Client Installation Directions
 -------------------------------------------
 
-Download the ``zopeedit.py`` program:
+Easy install the ``collective.zopeedit`` program into a convenient Python
+2 installation on your system:
 
 .. code-block:: text
 
-   $ wget http://svn.zope.org/*checkout*/Products.ExternalEditor/trunk/zopeedit.py?rev=67548
+   $ easy_install collective.zopeedit
 
-Make the resulting ``zopeedit.py`` program executable:
-
-.. code-block:: text
-
-   $ chmod 755 zopeedit.py
-
-Copy the ``zopeedit.py`` file into your local user's ``/home/username/bin``
-directory:
+Make a link from your Python's ``bin/zopeedit`` file into your local user's
+``/home/username/bin`` directory:
 
 .. code-block:: text
 
    $ mkdir -p ~/bin
-   $ cp zopeedit.py ~/bin
+   $ ln -s /path/to/my/python/bin/zopeedit ~/bin
 
-Run zopeedit.py once with a single bogus filename as an argument. This will
+Run zopeedit once with a single bogus filename as an argument. This will
 cause the program to generate a configuration file in
-``~/.zope-external-edit``.
+``~/.config/collective.zopeedit/ZopeEdit.ini``.
 
 .. code-block:: text
 
-   $ zopeedit.py foo
+   $ zopeedit foo
 
 It will throw an error.  Ignore the error.  Edit the resulting
-``~/.zope-external-edit`` file and uncomment the ``editor =`` line, setting it
-to whatever your preferred text editor is.
+``~/.config/collective.zopeedit/ZopeEdit.ini`` file and uncomment the ``editor
+=`` line, setting it to whatever your preferred text editor is.
 
 .. code-block:: text
 
@@ -101,14 +96,14 @@ to whatever your preferred text editor is.
 You can change other options in that file as you like.  One help for debugging
 things is setting ``cleanup_files = 0``.  This will cause external editor to
 not delete the original file location it's editing, so that you can use
-``zopeedit.py foo.bar`` to test that things are working without destroying
+``zopeedit foo.bar`` to test that things are working without destroying
 ``foo.bar`` when that command is invoked.  Once you have things working,
 however, it's a good idea to set it back to ``cleanup_files = 1``.
 
 Now it's time to get your desktop environment set up so that it knows to launch
 external editor from your browser when it downloads the file resulting from a
 click of the pencil icon in the SDI.  Create a file named ``zopeedit.desktop``
-in ``~/.local/share/applications`` with the fillowing content:
+in ``~/.local/share/applications`` with the following content:
 
 .. code-block:: text
 
@@ -118,14 +113,13 @@ in ``~/.local/share/applications`` with the fillowing content:
    GenericName=Zope External Editor
    Comment=View and edit files using Zope External Editor
    MimeType=application/x-zope-edit;
-   Exec=/home/chrism/bin/zopeedit.py %f
+   Exec=/home/chrism/bin/zopeedit %f
    Icon=/usr/share/icons/gnome/48x48/apps/zen-icon.png
    Type=Application
    Terminal=false
    Categories=Utility;Development;TextEditor;
 
-Create a new file at ``/usr/share/mime/packages/zopeedit.xml`` with the
-following contents (this will require root privilege):
+Create a new file at ``~/zopeedit.xml`` with the following contents:
 
 .. code-block:: xml
 
@@ -140,18 +134,19 @@ following contents (this will require root privilege):
      </mime-type>
    </mime-info>
 
-Run the following commands (the first will require root privilege):
+Run the following commands:
 
 .. code-block:: text
 
-   $ sudo update-desktop-database && sudo update-mime-database /usr/share/mime
-   $ xdg-mime install --novendor /usr/share/mime/packages/zopeedit.xml
+   $ xdg-mime install --novendor ~/zopeedit.xml
    $ xdg-mime default zopeedit.desktop application/x-zope-edit
+   $ update-desktop-database
+   $ update-mime-database ~/.local/share/mime
 
 Restart your browser.  Now when you click on the pencil icon next to any
-``File`` in the SDI, your preferred text editor should launch.  If it doesn't,
-start debugging.  If it does, changes made to the file will be posted back to
-the server every second or so.
+textlike ``File`` in the SDI, your preferred text editor should launch.  If it
+doesn't, start debugging.  If it does, changes made to the file will be posted
+back to the server every second or so.
 
 Adding Pencil Icons For Custom Content Types
 --------------------------------------------
