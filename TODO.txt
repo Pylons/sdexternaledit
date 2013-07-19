@@ -1,0 +1,72 @@
+The client side via collective.zopeedit on Ubuntu (and probably any other
+recent Linux distro) is currently totally fucked in Chromium unless you a) set
+editor=something and b) set extension=.noextension in ZopeEdit.ini.  Why, you
+ask?
+
+Chromium delegates to the operating system to choose which application to open
+when a file cannot be handled by the browser itself, and is downloaded as a
+result.  The fun part: the mimetype provided by in the response from the server
+is simply thrown away when Chromium figures out it can't handle the mimetype
+all by itself, and that it needs to punt to the OS.  It's not even set as an
+extended attribute of the downloaded file.  It's just gone.
+
+After downloading the file and throwing the mimetype away, Chromium punts to
+the operating system to figure out which application should be used to open the
+downloaded file.  Which means the "xdg-open" program.  xdg-open uses the
+"Shared Mime Info" specification
+(http://standards.freedesktop.org/shared-mime-info-spec/shared-mime-info-spec-latest.html)
+to choose which application to open given a file.  xdg-open cannot be given a
+hint about the file's mimetype because clearly that would make life far too
+easy.  And Chromium *does not* set the ``user.mime_type`` attribute on the
+downloaded file (not that it would matter, because the version of xdg-open on
+Ubuntu 12.04 doesn't take it into account anyway, even though the spec says it
+should).  Instead, it only takes a filename or a URL as a single argument, and
+then attempts to divine the mimetype from that argument.  xdg-open on Ubuntu
+(really gvfs-open, because xdg-open is just a wrapper around it) will first
+consult the mime database using the file extension of the file.  If a mimetype
+is associated with the extension, it's game over.  In practice, this means that
+if the downloaded file extension is ``.txt``, gedit is going to be used to open
+the file, fucking full stop.  Game over, glad you played.
+
+However, we don't *want* gedit to be used to open the file, we want zopeedit to
+be used to open the file.  This means that we have to manufacture a phony
+extension that isn't associated with any mimetype in the shared mime database,
+so that the *magic* computation of the shared mimeinfo database will begin to
+come into play.  Once the magic computation comes into play,
+"application/x-zope-edit" will always be found as the mimetype due to the magic
+rule in the "zopeedit.xml" file.  Good enough.
+
+So now we're able to download the file as a ``.zem`` file and zopeedit gets
+launched.  In the meantime, however, collective.zopeedit copies the file to a
+tempfile using its original filename (which ends with .zem), and *it* wants to
+use gvfs-open to figure out which file to launch if ``editor`` is not set.  And
+since the filename ends in ``.zem`` it chooses zopeedit!  Total clusterfuck.
+
+In practice, this means, on Ubuntu, in Chromium:
+
+- We have to tack on a .zem extension to the downloaded filename by using
+  ``name=edit.zem`` in the server-side source code.
+
+- We have to set ``extension=.noeextension`` in the ZopeEdit.ini file to
+  prevent zopeedit from trying to open a ``.zem`` file using gvfs-open and
+  recursing itself to death.
+
+There are similar fuckages using Firefox, although I believe Firefox has some
+sort of way of associating a mimetype with an external program, so it may
+behave slightly better.
+
+Windows and MacOS are completely different animals.  No idea.
+
+You might think an option would be to cause the client to accept a *URL*
+instead of a filename.  The URL can have a custom scheme
+(e.g. ``zopeedit://localhost:6543/foo/bar.txt``).  Then we can associate the
+scheme with an application, which will be fed the URL.  But this has problems
+too because the program that is fed the URL wont have the proper credentials to
+download the file.
+
+So at this point I see no other option but to change collective.zopeedit to
+munge the filename it uses to create a copy of the downloaded file in a temp
+location to get rid of /edit.zem or at least tack on the original extension of
+the downloaded file.
+
+What was so bad about configurable browser helper apps again?
