@@ -84,7 +84,10 @@ editor to launch (instead of editor= being assigned manually), it will
 generally find one and launch it ok, but the zopeedit process usually loses
 track of the editor and assumes it has closed, because most programs like gedit
 spawn a small process which feeds a new file to an already-open program
-(e.g. something like emacsclient).  So in practice, setting ``editor`` in
-ZopeEdit.ini to a static value (or on a per content-type basis) is the only
-practical thing to do, at least on Linux systems that use xdg-utils.
+(e.g. something like emacsclient).  It looks like ``collective.zopeedit``
+actually has some code in place that tries to continually ask the user if the
+file is still being edited in this case, but it doesn't actually appear to
+work.  So in practice, setting ``editor`` in ZopeEdit.ini to a static value (or
+on a per content-type basis) is the only practical thing to do, at least on
+Linux systems that use xdg-utils.
 
