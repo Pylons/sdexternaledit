@@ -1,6 +1,6 @@
 The client side via collective.zopeedit on Ubuntu (and probably any other
 recent Linux distro) is currently totally fucked in Chromium unless you a) set
-editor=something and b) set extension=.noextension in ZopeEdit.ini.  Why, you
+editor=something or b) set extension=.noextension in ZopeEdit.ini.  Why, you
 ask?
 
 Chromium delegates to the operating system to choose which application to open
