@@ -51,6 +51,9 @@ In practice, this means, on Ubuntu, in Chromium:
   prevent zopeedit from trying to open a ``.zem`` file using gvfs-open and
   recursing itself to death.
 
+- We have to set ``editor`` in ZopeEdit.ini to prevent zopeedit from trying to
+  use gvfs-open.
+
 There are similar fuckages using Firefox, although I believe Firefox has some
 sort of way of associating a mimetype with an external program, so it may
 behave slightly better.
