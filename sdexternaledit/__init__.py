@@ -23,8 +23,12 @@ class IEdit(Interface):
     pass
 
 class ExternalEditorViews(object):
+
     discover_resource_locks = staticmethod(discover_resource_locks)
     could_lock_resource = staticmethod(could_lock_resource)
+    lock_resource = staticmethod(lock_resource)
+    unlock_resource = staticmethod(unlock_resource)
+
     def __init__(self, context, request):
         self.context = context
         self.request = request
@@ -90,7 +94,9 @@ class ExternalEditorViews(object):
         )
     def lock(self):
         try:
-            lock = lock_resource(self.context, self.request.user, timeout=86400)
+            lock = self.lock_resource(
+                self.context, self.request.user, timeout=86400
+                )
         except LockError:
             return HTTPPreconditionFailed()
         return Response(' >opaquelocktoken:%s<' % lock.__name__)
@@ -103,7 +109,7 @@ class ExternalEditorViews(object):
         )
     def unlock(self):
         try:
-            unlock_resource(self.context, self.request.user)
+            self.unlock_resource(self.context, self.request.user)
         except UnlockError:
             return HTTPPreconditionFailed()
         return Response('OK')
@@ -147,15 +153,14 @@ class FolderContentsWithEditIcon(FolderContents):
                 for column in columns:
                     if column['name'] == 'Name':
                         if column['formatter'] == 'html':
-                            resource_path = resource_path_tuple(resource)[1:]
-                            traverse = resource_path
+                            traverse = resource_path_tuple(resource)[1:]
                             url = self.request.route_url(
                                 'sdexternaledit',
                                 traverse=traverse,
                                 )
                             value = (' <a href="%s"><i class="icon-pencil">'
                                      '</a></i>' % url)
-                            column['value'] = column['value'] + value
+                            column['value'] += value
                         break
         return columns
 
