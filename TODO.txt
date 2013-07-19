@@ -32,15 +32,18 @@ However, we don't *want* gedit to be used to open the file, we want zopeedit to
 be used to open the file.  This means that we have to manufacture a phony
 extension that isn't associated with any mimetype in the shared mime database,
 so that the *magic* computation of the shared mimeinfo database will begin to
-come into play.  Once the magic computation comes into play,
-"application/x-zope-edit" will always be found as the mimetype due to the magic
-rule in the "zopeedit.xml" file.  Good enough.
+come into play or we need to tack on an extension that is known to be
+associated with zopeedit.  Once the magic computation comes into play or the
+extension is ``.zem`` "application/x-zope-edit" will always be found as the
+mimetype due to the magic/glob rules in the "zopeedit.xml" file.  Good enough.
 
-So now we're able to download the file as a ``.zem`` file and zopeedit gets
-launched.  In the meantime, however, collective.zopeedit copies the file to a
-tempfile using its original filename (which ends with .zem), and *it* wants to
-use gvfs-open to figure out which file to launch if ``editor`` is not set.  And
-since the filename ends in ``.zem`` it chooses zopeedit!  Total clusterfuck.
+So assume we've decided to use ``.zem`` as an extension to every downloaded
+file that is destined for zopeedit.  We're able to download the file as a
+``.zem`` file and zopeedit gets launched.  However, collective.zopeedit will
+copy the file to a tempfile using its original filename (which ends with .zem),
+and if ``editor`` is not set *it* wants to use gvfs-open to figure out which
+application.  And since the filename ends in ``.zem`` it chooses zopeedit,
+which ends in a total clusterfuck.
 
 In practice, this means, on Ubuntu, in Chromium:
 
@@ -48,11 +51,13 @@ In practice, this means, on Ubuntu, in Chromium:
   ``name=edit.zem`` in the server-side source code.
 
 - We have to set ``extension=.noeextension`` in the ZopeEdit.ini file to
-  prevent zopeedit from trying to open a ``.zem`` file using gvfs-open and
-  recursing itself to death.
+  prevent zopeedit from finding itself when it opens a ``.zem`` file using
+  gvfs-open and recursing itself to death.
+
+  - OR -
 
 - We have to set ``editor`` in ZopeEdit.ini to prevent zopeedit from trying to
-  use gvfs-open.
+  use gvfs-open at all.
 
 There are similar fuckages using Firefox, although I believe Firefox has some
 sort of way of associating a mimetype with an external program, so it may
