@@ -32,7 +32,6 @@ class ExternalEditorViews(object):
         request_method='GET',
         permission='sdi.edit-properties',
         http_cache=0,
-        name='edit.zem',
         )
     def get(self):
         request = self.request
@@ -78,6 +77,9 @@ class ExternalEditorViews(object):
             app_iter=app_iter,
             content_type='application/x-zope-edit'
             )
+        disp = 'attachment; filename*="%s.zopeedit"' % self.context.__name__
+        disp = disp + '; filename="%s.zopeedit"' % self.context.__name__
+        response.headers['Content-Disposition'] = disp
         return response
 
     @view_config(
@@ -85,7 +87,6 @@ class ExternalEditorViews(object):
         request_method='LOCK',
         permission='sdi.lock',
         http_cache=0,
-        name='edit.zem',
         )
     def lock(self):
         try:
@@ -99,7 +100,6 @@ class ExternalEditorViews(object):
         request_method='UNLOCK',
         permission='sdi.lock',
         http_cache=0,
-        name='edit.zem',
         )
     def unlock(self):
         try:
@@ -113,7 +113,6 @@ class ExternalEditorViews(object):
         request_method='PUT',
         permission='sdi.edit-properties',
         http_cache=0,
-        name='edit.zem',
         )
     def put(self):
         request = self.request
@@ -149,7 +148,7 @@ class FolderContentsWithEditIcon(FolderContents):
                     if column['name'] == 'Name':
                         if column['formatter'] == 'html':
                             resource_path = resource_path_tuple(resource)[1:]
-                            traverse = resource_path + ('edit.zem',)
+                            traverse = resource_path
                             url = self.request.route_url(
                                 'sdexternaledit',
                                 traverse=traverse,
