@@ -104,7 +104,9 @@ You can also choose not to set the ``editor`` value, and let your operating
 system figure out which editor to use when you click on a pencil icon.  In
 practice, this may have undesirable effects if the process invoked by the edit
 helper returns before the editing session is complete (e.g. if the process
-invokes another process in the background, then quits).
+invokes another process in the background, then quits).  You can alternately
+set an editor per content-type in the ZopeEdit.ini file as per the
+``collective.zopeedit`` documentation.
 
 Now it's time to get your desktop environment set up so that it knows to launch
 external editor from your browser when it downloads the file resulting from a
@@ -133,7 +135,7 @@ Create a new file at ``~/zopeedit.xml`` with the following contents:
    <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
      <mime-type type="application/x-zope-edit">
        <comment>Zope external editor</comment>
-       <!-- <glob pattern="*.zem"/> -->
+       <glob pattern="*.zem"/>
        <magic priority="100">
          <match value="application:zopeedit" type="string" offset="0"/>
        </magic>
