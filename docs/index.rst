@@ -100,6 +100,12 @@ not delete the original file location it's editing, so that you can use
 ``foo.bar`` when that command is invoked.  Once you have things working,
 however, it's a good idea to set it back to ``cleanup_files = 1``.
 
+You can also choose not to set the ``editor`` value, and let your operating
+system figure out which editor to use when you click on a pencil icon.  In
+practice, this may have undesirable effects if the process invoked by the edit
+helper returns before the editing session is complete (e.g. if the process
+invokes another process in the background, then quits).
+
 Now it's time to get your desktop environment set up so that it knows to launch
 external editor from your browser when it downloads the file resulting from a
 click of the pencil icon in the SDI.  Create a file named ``zopeedit.desktop``
@@ -127,7 +133,7 @@ Create a new file at ``~/zopeedit.xml`` with the following contents:
    <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
      <mime-type type="application/x-zope-edit">
        <comment>Zope external editor</comment>
-       <glob pattern="*.zem"/>
+       <!-- <glob pattern="*.zem"/> -->
        <magic priority="100">
          <match value="application:zopeedit" type="string" offset="0"/>
        </magic>
@@ -144,9 +150,9 @@ Run the following commands:
    $ update-mime-database ~/.local/share/mime
 
 Restart your browser.  Now when you click on the pencil icon next to any
-textlike ``File`` in the SDI, your preferred text editor should launch.  If it
-doesn't, start debugging.  If it does, changes made to the file will be posted
-back to the server every second or so.
+textlike ``File`` in the SDI, your preferred text editor should launch with the
+content in the file.  If it doesn't, start debugging.  If it does, changes made
+to the file will be posted back to the server every second or so.
 
 Adding Pencil Icons For Custom Content Types
 --------------------------------------------

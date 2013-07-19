@@ -1,7 +1,6 @@
 The client side via collective.zopeedit on Ubuntu (and probably any other
-recent Linux distro) is currently totally fucked in Chromium unless you a) set
-editor=something or b) set extension=.noextension in ZopeEdit.ini.  Why, you
-ask?
+recent Linux distro) is pretty much fucked in Chromium unless you a) set
+editor=something.  Why, you ask?
 
 Chromium delegates to the operating system to choose which application to open
 when a file cannot be handled by the browser itself, and is downloaded as a
@@ -45,19 +44,14 @@ and if ``editor`` is not set *it* wants to use gvfs-open to figure out which
 application to use to open the file.  And since the filename ends in ``.zem``
 it chooses zopeedit, which ends in a total clusterfuck.
 
-In practice, this means, on Ubuntu, in Chromium:
+So we can't do that.  Instead we have to tack on a completely phony extension
+that is not associated with any mimetype.
 
-- We have to tack on a .zem extension to the downloaded filename by using
-  ``name=edit.zem`` in the server-side source code.
-
-- We have to set ``extension=.noeextension`` in the ZopeEdit.ini file to
-  prevent zopeedit from finding itself when it opens a ``.zem`` file using
-  gvfs-open and recursing itself to death.
-
-  - OR -
-
-- We have to set ``editor`` in ZopeEdit.ini to prevent zopeedit from trying to
-  use gvfs-open at all.
+In practice, this means, on Ubuntu, in Chromium, we e have to tack on a
+.zopeedit extension to the downloaded filename by using content-disposition in
+the server-side source code.  This extension isn't actually associated with any
+mimetype.  It's just there so gvs-open has to use its magic database to open
+the file.
 
 There are similar fuckages using Firefox, although I believe Firefox has some
 sort of way of associating a mimetype with an external program, so it may
@@ -80,19 +74,11 @@ uses to create a copy of the downloaded file in a temp location to get rid of
 /edit.zem or at least tack on the original extension of the downloaded file.
 But this means we have to fork the client.
 
-I've worked around this a bit by causing the file to be downloaded with a
-``.zopeedit`` extension (via a content-disposition attachment header).  This
-extension is not meant to be associated with any particular mimetype on the
-client side, it's just there to force xdg-open (if it's used) to use zopeedit
-by forcing xgd-open to consult its magic database instead of the file
-extension, and to cause the xdg-open launched by zopeedit to do the same.  This
-also meant I could drop the ``edit.zem`` view name from the server-side views.
+The last remaining fuckage: when xdg-open is used by zopeedit to figure out
+which editor to launch (instead of editor= being assigned manually), it finds
+one and launches it ok, but the zopeedit process usually loses track of the
+editor and assumes it has closed, because most programs like gedit spawn a
+small process which feeds a new file to an already-open program (e.g. something
+like emacsclient).  So in practice, setting ``editor`` to a static value is the
+only practical thing to do, at least on Ubuntu.
 
-Note however that when xdg-open is used by zopeedit to figure out which editor
-to launch (instead of editor= being assigned manually), it finds one and
-launches it ok, but the zopeedit process usually loses track of the editor and
-assumes it has closed, because most programs like gedit spawn a small process
-which feeds a new file to an already-open program (e.g. something like
-emacsclient).  So it's pretty useless anyway.
-
-What was so bad about configurable browser helper apps again?
