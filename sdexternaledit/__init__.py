@@ -23,6 +23,8 @@ class IEdit(Interface):
     pass
 
 class ExternalEditorViews(object):
+    discover_resource_locks = staticmethod(discover_resource_locks)
+    could_lock_resource = staticmethod(could_lock_resource)
     def __init__(self, context, request):
         self.context = context
         self.request = request
@@ -43,13 +45,13 @@ class ExternalEditorViews(object):
         headers = {}
         headers['url'] = request.current_route_url()
         headers['meta_type'] = str(request.registry.content.typeof(context))
-        headers['title'] = context.__name__
+        headers['title'] = context.__name__ or ''
         headers['content_type'] = mimetype
         headers['cookie'] = request.environ.get('HTTP_COOKIE', '')
         headers['borrow_lock'] = str(
-            could_lock_resource(context, request.user) and 1 or 0
+            self.could_lock_resource(context, request.user) and 1 or 0
             )
-        locks = discover_resource_locks(context)
+        locks = self.discover_resource_locks(context)
         if locks:
             lock = locks[0]
             headers['lock-token'] = lock.__name__
@@ -70,8 +72,6 @@ class ExternalEditorViews(object):
         # The value of "application:zopeedit" is not used by the client at all,
         # but it is compatible with the format expected by the client.
         headerlist = [x.encode('utf-8') for x in headerlist]
-        if request.params.get('skip_data'):
-            return Response(app_iter=headerlist)
         app_iter = itertools.chain(headerlist, (b'\n',), body)
         response = Response(
             app_iter=app_iter,

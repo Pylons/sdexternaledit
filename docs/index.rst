@@ -165,9 +165,9 @@ Out of the box, ``sdexternaledit`` only puts pencil icons next to Substanced
 ``File`` types.  You can jigger things so that it will also put pencil icons
 next to your custom types too.  You'll need to create an adapter, which is a
 class with a constructor that accepts two arguments (``context`` and
-``request``).  The ``context`` will be an instance of your custom class.  The
-class must also implement ``get`` and ``put`` methods, which will be called by
-sdexternaledit to retrieve the editable content, and to save it, respectively.
+``request``).  The class must also implement ``get`` and ``put`` methods, which
+will be called by sdexternaledit to retrieve the editable content, and to save
+it, respectively.
 
 .. code-block:: python
 
@@ -179,6 +179,7 @@ sdexternaledit to retrieve the editable content, and to save it, respectively.
 
    class MyContentClassAdapter(object):
        def __init__(self, context, request):
+           # ``context`` will be an instance of your MyContentClass
            self.context = context
            self.request = request
 
