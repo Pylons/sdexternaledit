@@ -52,10 +52,11 @@ body (binary or text) after the headers.  In addition to having the
 always start with the line ``application:zopeedit``.
 
 How your operating system actually invokes the client portion of external
-editor is OS-dependent, but all OS implementations make use of either the
-``application/x-zope-edit`` content type or the fact that the file starts with
-the line ``application:zopeedit`` to detect that the zope editor client should
-be started when the file is downloaded.
+editor is browser-dependent as well as OS-dependent, but all OS implementations
+make use of either the ``application/x-zope-edit`` content type or the fact
+that the file starts with the line ``application:zopeedit`` or the fact that
+the downloaded file is suffixed with a ``.zem`` extension to detect that the
+zope editor client should be started when the file is downloaded.
 
 Ubuntu 12.04 Client Installation Directions
 -------------------------------------------
