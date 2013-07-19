@@ -6,8 +6,8 @@ Overview
 
 :mod:`sdexternaledit` is a package which provides Zope External Editor
 capabilities to Substance D.  Zope External Editor is a client program which
-allows you to edit text and binary files stored on web servers in OS-native
-editors.
+allows you to edit text and binary files served by web servers in OS-native
+editors by clicking on an icon in the web UI.
 
 Installation
 ------------
@@ -75,17 +75,17 @@ Make a link from your Python's ``bin/zopeedit`` file into your local user's
    $ mkdir -p ~/bin
    $ ln -s /path/to/my/python/bin/zopeedit ~/bin
 
-Run zopeedit once with a single bogus filename as an argument. This will
-cause the program to generate a configuration file in
+Run zopeedit once without any arguments as an argument. This will cause the
+program to generate a configuration file in
 ``~/.config/collective.zopeedit/ZopeEdit.ini``.
 
 .. code-block:: text
 
-   $ zopeedit foo
+   $ zopeedit
 
-It will throw an error.  Ignore the error.  Edit the resulting
-``~/.config/collective.zopeedit/ZopeEdit.ini`` file and uncomment the ``editor
-=`` line, setting it to whatever your preferred text editor is.
+Edit the resulting ``~/.config/collective.zopeedit/ZopeEdit.ini`` file and
+uncomment the ``editor =`` line, setting it to whatever your preferred text
+editor is.
 
 .. code-block:: text
 
@@ -153,9 +153,47 @@ Adding Pencil Icons For Custom Content Types
 
 Out of the box, ``sdexternaledit`` only puts pencil icons next to Substanced
 ``File`` types.  You can jigger things so that it will also put pencil icons
-next to your custom types too.
+next to your custom types too.  You'll need to create an adapter, which is a
+class with a constructor that accepts two arguments (``context`` and
+``request``).  The ``context`` will be an instance of your custom class.  The
+class must also implement ``get`` and ``put`` methods, which will be called by
+sdexternaledit to retrieve the editable content, and to save it, respectively.
 
-XXX flesh out
+.. code-block:: python
+
+   class MyContentClass(Persistent):
+       """ A custom content class """
+       def __init__(self, data):
+           """ Data should be unicode """
+           self.data = data
+
+   class MyContentClassAdapter(object):
+       def __init__(self, context, request):
+           self.context = context
+           self.request = request
+
+       def get(self):
+           """ Return a tuple of iterable-of-bytes, mimetype. """
+           return (
+               [self.context.data.encode('utf-8')],
+               self.context.mimetype,
+               )
+  
+       def put(self, fp):
+           """ Change the context using the file object ``fp`` passed in. """
+           self.context.data = fp.read().decode('utf-8')
+
+Then in the configuration stage, after including ``sdexternaledit`` into the
+configuration, you can use the ``register_edit_adapter`` method of the
+Configurator to associate the adapter with the content class:
+
+.. code-block:: python
+
+   config.include('sdexternaledit')
+   config.register_edit_adapter(MyContentClassAdapter, MyContentClass)
+
+Instead of using a class argument as the 2nd arg to ``register_edit_adapter``,
+you can also use an interface.
 
 Reporting Bugs / Development Versions
 -------------------------------------

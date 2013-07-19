@@ -89,7 +89,7 @@ class ExternalEditorViews(object):
         )
     def lock(self):
         try:
-            lock = lock_resource(self.context, self.request.user)
+            lock = lock_resource(self.context, self.request.user, timeout=86400)
         except LockError:
             return HTTPPreconditionFailed()
         return Response(' >opaquelocktoken:%s<' % lock.__name__)
@@ -149,7 +149,7 @@ class FolderContentsWithEditIcon(FolderContents):
                     if column['name'] == 'Name':
                         if column['formatter'] == 'html':
                             resource_path = resource_path_tuple(resource)[1:]
-                            traverse= resource_path + ('edit.zem',)
+                            traverse = resource_path + ('edit.zem',)
                             url = self.request.route_url(
                                 'sdexternaledit',
                                 traverse=traverse,
@@ -159,6 +159,9 @@ class FolderContentsWithEditIcon(FolderContents):
                             column['value'] = column['value'] + value
                         break
         return columns
+
+def register_edit_adapter(config, adapter, iface):
+    config.registry.registerAdapter(adapter, (iface, Interface), IEdit)
         
 def includeme(config): # pragma: no cover
     config.includepath = ('substanced:includeme',)
@@ -178,6 +181,7 @@ def includeme(config): # pragma: no cover
         pattern='%s/*traverse' % non_slash_appended
         )
     config.add_folder_contents_views(cls=FolderContentsWithEditIcon)
-    config.registry.registerAdapter(FileEdit, (IFile, Interface), IEdit)
+    config.add_directive('register_edit_adapter', register_edit_adapter)
+    config.register_edit_adapter(FileEdit, IFile)
     config.scan()
 
