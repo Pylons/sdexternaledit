@@ -62,7 +62,8 @@ There is similar weirdness using Firefox, although Firefox has some sort of way
 of associating a mimetype with an external program, so it may behave slightly
 better.  In particular, I think when it downloads a file of a particular
 mimetype that it doesn't yet know about, it asks you which program to use to
-open the file instead of just downloading it and letting the OS take over.
+open the file (with a sensible deafult based on the response mimetype) instead
+of just downloading it and letting the OS take over.
 
 Windows and MacOS are completely different animals.  No idea there.
 
@@ -90,4 +91,3 @@ file is still being edited in this case, but it doesn't actually appear to
 work.  So in practice, setting ``editor`` in ZopeEdit.ini to a static value (or
 on a per content-type basis) is the only practical thing to do, at least on
 Linux systems that use xdg-utils.
-
