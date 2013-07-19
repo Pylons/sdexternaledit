@@ -2,9 +2,9 @@ Rationale for Using a Content-Disposition header
 ------------------------------------------------
 
 ``sdexternaledit`` returns a response when the pencil icon is clicked with a
-mimetype of ``application/x-external-edit`` with a URL that is the same name as
-the resource being edited, and a Content-Disposition header that has a filename
-with a ``.zem`` extension.  Why?
+mimetype of ``application/x-external-edit`` with a URL that has a final path
+segment with the same name as the resource being edited, and a
+Content-Disposition header that has a filename with a ``.zem`` extension.  Why?
 
 Chromium delegates to the operating system to choose which application to open
 when a file cannot be handled by the browser itself, and is downloaded as a
@@ -52,7 +52,11 @@ it chooses zopeedit, which ends in a total clusterfuck.
 So we can't do that.  Instead we have to tack on a ``.zem`` extension in the
 content-disposition of the downloaded file using ``attachment;
 filename="realfilename.txt.zem".  Once we do that, zopeedit is unaware of the
-.zem extension and copies the tempfile over without using it.
+.zem extension and copies the tempfile over without using it.  The tempfile
+will have the same name as the original resource (due to the "url" zopeedit
+header in the body of the downloaded file), which means if zopeedit tries to
+use xdg-open against it, if glob computation is used, something that can handle
+the file will be used.
 
 There is similar weirdness using Firefox, although Firefox has some sort of way
 of associating a mimetype with an external program, so it may behave slightly
@@ -69,16 +73,18 @@ scheme with an application, which will be fed the URL.  But this has problems
 too because the program that is fed the URL wont have the proper credentials to
 download the file.
 
-Another option would be to change collective.zopeedit to munge the filename it
-uses to create a copy of the downloaded file in a temp location to get rid of
-/edit.zem or at least tack on the original extension of the downloaded file.
-But this means we have to fork the client.
+Another option would be to use views with the name ``edit.zem`` and change
+collective.zopeedit to munge the filename it uses to create a copy of the
+downloaded file in a temp location to get rid of /edit.zem or at least tack on
+the original extension of the downloaded file.  But this would mean we have to
+fork the client.
 
 The remaining problem: when xdg-open is used by zopeedit to figure out which
-editor to launch (instead of editor= being assigned manually), it finds one and
-launches it ok, but the zopeedit process usually loses track of the editor and
-assumes it has closed, because most programs like gedit spawn a small process
-which feeds a new file to an already-open program (e.g. something like
-emacsclient).  So in practice, setting ``editor`` to a static value is the only
+editor to launch (instead of editor= being assigned manually), it will
+generally find one and launch it ok, but the zopeedit process usually loses
+track of the editor and assumes it has closed, because most programs like gedit
+spawn a small process which feeds a new file to an already-open program
+(e.g. something like emacsclient).  So in practice, setting ``editor`` in
+ZopeEdit.ini to a static value (or on a per content-type basis) is the only
 practical thing to do, at least on Linux systems that use xdg-utils.
 
