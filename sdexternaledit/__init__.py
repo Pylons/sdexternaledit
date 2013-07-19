@@ -112,7 +112,7 @@ class ExternalEditorViews(object):
             self.unlock_resource(self.context, self.request.user)
         except UnlockError:
             return HTTPPreconditionFailed()
-        return Response('OK')
+        return Response('OK', content_type='text/plain')
 
     @view_config(
         route_name='sdexternaledit',
@@ -127,7 +127,7 @@ class ExternalEditorViews(object):
         if adapter is None:
             return HTTPNotFound()
         adapter.put(request.body_file)
-        return Response('OK')
+        return Response('OK', content_type='text/plain')
 
 class FileEdit(object):
     def __init__(self, context, request):
@@ -164,7 +164,7 @@ class FolderContentsWithEditIcon(FolderContents):
                         break
         return columns
 
-def register_edit_adapter(config, adapter, iface):
+def register_edit_adapter(config, adapter, iface): # pragma: no cover
     config.registry.registerAdapter(adapter, (iface, Interface), IEdit)
         
 def includeme(config): # pragma: no cover

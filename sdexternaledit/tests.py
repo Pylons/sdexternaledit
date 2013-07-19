@@ -97,11 +97,201 @@ class TestExternalEditorViews(unittest.TestCase):
             'attachment; filename*="fred.zem"; filename="fred.zem"'
             )
 
+    def test_lock_with_lock_error(self):
+        from pyramid.httpexceptions import HTTPPreconditionFailed
+        from substanced.locking import LockError
+        context = testing.DummyResource()
+        context.__name__ = 'fred'
+        request = testing.DummyRequest()
+        request.user = testing.DummyResource()
+        inst = self._makeOne(context, request)
+        def raiser(_context, user, timeout):
+            self.assertEqual(context, _context)
+            self.assertEqual(user, request.user)
+            self.assertEqual(timeout, 86400)
+            raise LockError(None)
+        inst.lock_resource = raiser
+        response = inst.lock()
+        self.assertEqual(response.__class__, HTTPPreconditionFailed)
+
+    def test_lock_gardenpath(self):
+        context = testing.DummyResource()
+        context.__name__ = 'fred'
+        request = testing.DummyRequest()
+        request.user = testing.DummyResource()
+        inst = self._makeOne(context, request)
+        lock = testing.DummyResource()
+        lock.__name__ = 'lock'
+        def locker(_context, user, timeout):
+            self.assertEqual(context, _context)
+            self.assertEqual(user, request.user)
+            self.assertEqual(timeout, 86400)
+            return lock
+        inst.lock_resource = locker
+        response = inst.lock()
+        self.assertEqual(response.text, ' >opaquelocktoken:lock<')
+
+    def test_unlock_with_unlock_error(self):
+        from pyramid.httpexceptions import HTTPPreconditionFailed
+        from substanced.locking import UnlockError
+        context = testing.DummyResource()
+        context.__name__ = 'fred'
+        request = testing.DummyRequest()
+        request.user = testing.DummyResource()
+        inst = self._makeOne(context, request)
+        def raiser(_context, user):
+            self.assertEqual(context, _context)
+            self.assertEqual(user, request.user)
+            raise UnlockError(None)
+        inst.unlock_resource = raiser
+        response = inst.unlock()
+        self.assertEqual(response.__class__, HTTPPreconditionFailed)
+
+    def test_unlock_gardenpath(self):
+        context = testing.DummyResource()
+        context.__name__ = 'fred'
+        request = testing.DummyRequest()
+        request.user = testing.DummyResource()
+        inst = self._makeOne(context, request)
+        def unlocker(_context, user):
+            self.assertEqual(context, _context)
+            self.assertEqual(user, request.user)
+        inst.unlock_resource = unlocker
+        response = inst.unlock()
+        self.assertEqual(response.text, 'OK')
+
+    def test_put_no_adapter(self):
+        from pyramid.httpexceptions import HTTPNotFound
+        context = testing.DummyResource()
+        request = testing.DummyRequest()
+        inst = self._makeOne(context, request)
+        response = inst.put()
+        self.assertEqual(response.__class__, HTTPNotFound)
+        
+    def test_put_gardenpath(self):
+        from io import BytesIO
+        from zope.interface import Interface
+        from . import IEdit
+        context = testing.DummyResource()
+        request = testing.DummyRequest()
+        body_file = BytesIO()
+        request.body_file = body_file
+        adapter = DummyEditAdapter(None)
+        self.config.registry.registerAdapter(
+            adapter, (Interface, Interface), IEdit
+            )
+        inst = self._makeOne(context, request)
+        response = inst.put()
+        self.assertEqual(adapter.fp, body_file)
+        self.assertEqual(response.text, 'OK')
+
+class TestFileEdit(unittest.TestCase):
+    def _makeOne(self, context, request):
+        from . import FileEdit
+        return FileEdit(context, request)
+
+    def test_get_context_has_mimetype(self):
+        context = testing.DummyResource()
+        context.mimetype = 'application/foo'
+        blob = testing.DummyResource()
+        here = __file__
+        def committed():
+            return here
+        blob.committed = committed
+        context.blob = blob
+        request = testing.DummyRequest()
+        inst = self._makeOne(context, request)
+        iterable, mimetype = inst.get()
+        self.assertEqual(mimetype, 'application/foo')
+        self.assertEqual(type(next(iterable)), bytes)
+
+    def test_get_context_has_no_mimetype(self):
+        context = testing.DummyResource()
+        context.mimetype = None
+        blob = testing.DummyResource()
+        here = __file__
+        def committed():
+            return here
+        blob.committed = committed
+        context.blob = blob
+        request = testing.DummyRequest()
+        inst = self._makeOne(context, request)
+        iterable, mimetype = inst.get()
+        self.assertEqual(mimetype, 'application/octet-stream')
+        self.assertEqual(type(next(iterable)), bytes)
+
+    def test_put(self):
+        context = testing.DummyResource()
+        fp = 'fp'
+        def upload(_fp):
+            self.assertEqual(_fp, fp)
+        context.upload = upload
+        request = testing.DummyRequest()
+        inst = self._makeOne(context, request)
+        inst.put(fp)
+
+class TestFolderContentsWithEditIcon(unittest.TestCase):
+    def setUp(self):
+        self.config = testing.setUp()
+
+    def tearDown(self):
+        testing.tearDown()
+        
+    def _makeOne(self, context, request):
+        from . import FolderContentsWithEditIcon
+        return FolderContentsWithEditIcon(context, request)
+
+    def test_get_columns_resource_is_None(self):
+        context = testing.DummyResource()
+        request = testing.DummyRequest()
+        def metadata(rsrc, name, default=None):
+            return None
+        content = DummyContentRegistry(metadata=metadata)
+        request.registry.content = content
+        request.sdiapi = DummySDIAPI()
+        inst = self._makeOne(context, request)
+        columns = inst.get_columns(None)
+        self.assertEqual(columns, [])
+        
+    def test_get_columns_resource_is_not_None_no_adapter(self):
+        context = testing.DummyResource()
+        request = testing.DummyRequest()
+        def metadata(rsrc, name, default=None):
+            return None
+        content = DummyContentRegistry(metadata=metadata)
+        request.registry.content = content
+        request.sdiapi = DummySDIAPI()
+        inst = self._makeOne(context, request)
+        columns = inst.get_columns(context)
+        self.assertEqual(columns, [])
+
+    def test_get_columns_resource_is_not_None_with_adapter(self):
+        from zope.interface import Interface
+        from . import IEdit
+        context = testing.DummyResource()
+        request = testing.DummyRequest()
+        def metadata(rsrc, name, default=None):
+            return default
+        content = DummyContentRegistry(metadata=metadata)
+        request.registry.content = content
+        request.sdiapi = DummySDIAPI()
+        adapter = DummyEditAdapter(None)
+        self.config.registry.registerAdapter(
+            adapter, (Interface, Interface), IEdit
+            )
+        self.config.add_route('sdexternaledit', '/')
+        inst = self._makeOne(context, request)
+        columns = inst.get_columns(context)
+        self.assertTrue('icon-pencil' in columns[0]['value'])
+        
 class DummyRoute(object):
     def __init__(self, name):
         self.name = name
         
 class DummyContentRegistry(object):
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
+        
     def typeof(self, context):
         return 'File'
 
@@ -114,3 +304,11 @@ class DummyEditAdapter(object):
 
     def get(self):
         return self.result
+
+    def put(self, fp):
+        self.fp = fp
+
+class DummySDIAPI(object):
+    def mgmt_path(self, *arg, **kw):
+        return '/manage'
+    
