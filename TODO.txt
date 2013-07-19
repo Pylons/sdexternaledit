@@ -37,21 +37,18 @@ extension is ``.zem`` "application/x-zope-edit" will always be found as the
 mimetype due to the magic/glob rules in the "zopeedit.xml" file.  Good enough.
 
 So assume we've decided to use ``.zem`` as an extension to every downloaded
-file that is destined for zopeedit.  We're able to download the file as a
-``.zem`` file and zopeedit gets launched.  However, collective.zopeedit will
-copy the file to a tempfile using its original filename (which ends with .zem),
-and if ``editor`` is not set *it* wants to use gvfs-open to figure out which
+file that is destined for zopeedit by adding a view name of ``edit.zem`` to
+each server-side view.  We're able to download the file as a ``.zem`` file and
+zopeedit gets launched.  However, collective.zopeedit will copy the file to a
+tempfile using the filename in the URL (which ends with .zem), and if
+``editor`` is not set *it* wants to use gvfs-open to figure out which
 application to use to open the file.  And since the filename ends in ``.zem``
 it chooses zopeedit, which ends in a total clusterfuck.
 
-So we can't do that.  Instead we have to tack on a completely phony extension
-that is not associated with any mimetype.
-
-In practice, this means, on Ubuntu, in Chromium, we e have to tack on a
-.zopeedit extension to the downloaded filename by using content-disposition in
-the server-side source code.  This extension isn't actually associated with any
-mimetype.  It's just there so gvs-open has to use its magic database to open
-the file.
+So we can't do that.  Instead we have to tack on a ``.zem`` extension in the
+content-disposition of the downloaded file using ``attachment;
+filename="realfilename.txt.zem".  Once we do that, zopeedit is unaware of the
+.zem extension and copies the tempfile over without using it.
 
 There are similar fuckages using Firefox, although I believe Firefox has some
 sort of way of associating a mimetype with an external program, so it may

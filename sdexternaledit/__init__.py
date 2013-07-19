@@ -77,8 +77,8 @@ class ExternalEditorViews(object):
             app_iter=app_iter,
             content_type='application/x-zope-edit'
             )
-        disp = 'attachment; filename*="%s.zopeedit"' % self.context.__name__
-        disp = disp + '; filename="%s.zopeedit"' % self.context.__name__
+        disp = 'attachment; filename*="%s.zem"' % self.context.__name__
+        disp = disp + '; filename="%s.zem"' % self.context.__name__
         response.headers['Content-Disposition'] = disp
         return response
 
