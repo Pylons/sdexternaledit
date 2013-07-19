@@ -170,7 +170,7 @@ def register_edit_adapter(config, adapter, iface): # pragma: no cover
 def includeme(config): # pragma: no cover
     config.includepath = ('substanced:includeme',)
     # I am sorry for the above hack.  But it means that the statements
-    # (oparticularly the add_folder_contents_views statement) made in this
+    # (particularly the add_folder_contents_views statement) made in this
     # includeme will not conflict with (otherwise conflicting) statements made
     # via config.include('substanced').  We want to override the default
     # folder contents views, and the only other way to do that is to document
