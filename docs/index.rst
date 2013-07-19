@@ -49,7 +49,8 @@ with the ``application/x-zope-edit`` browser content type.  The derivation of
 the file will include some headers at its start, and the remainder of the file
 body (binary or text) after the headers.  In addition to having the
 ``application/x-zope-edit`` mimetype, the downloaded file derivation will
-always start with the line ``application:zopeedit``.
+always start with the line ``application:zopeedit`` and will have an extension
+of ``.zem``.
 
 How your operating system actually invokes the client portion of external
 editor is browser-dependent as well as OS-dependent, but all OS implementations
