@@ -18,6 +18,9 @@ from substanced.locking import (
 from substanced.util import chunks
 from substanced.interfaces import IFile
 from substanced.sdi.views.folder import FolderContents
+from email.header import Header
+
+from ._compat import url_quote
 
 class IEdit(Interface):
     pass
@@ -81,8 +84,13 @@ class ExternalEditorViews(object):
             app_iter=app_iter,
             content_type='application/x-zope-edit'
             )
-        disp = 'attachment; filename*="%s.zem"' % self.context.__name__
-        disp = disp + '; filename="%s.zem"' % self.context.__name__
+        disp = 'attachment'
+        filename = '%s.zem' % self.context.__name__
+        # use RFC2047 MIME encoding for filename* value
+        mencoded = Header(filename, 'utf-8').encode()
+        urlencoded = url_quote(filename)
+        disp += '; filename*="%s"' % mencoded
+        disp += '; filename="%s"' % urlencoded
         response.headers['Content-Disposition'] = disp
         return response
 
@@ -99,6 +107,8 @@ class ExternalEditorViews(object):
                 )
         except LockError:
             return HTTPPreconditionFailed()
+        # only enough "XML" to fool the client, which uses a regex instead
+        # of an XML parser.
         return Response(' >opaquelocktoken:%s<' % lock.__name__)
 
     @view_config(
@@ -143,24 +153,24 @@ class FileEdit(object):
     def put(self, fp):
         self.context.upload(fp)
 
+def pencil_icon(resource, request):
+    traverse = resource_path_tuple(resource)[1:]
+    url = request.route_url('sdexternaledit', traverse=traverse)
+    return ' <a href="%s"><i class="icon-pencil"></i></a>' % url
+
 class FolderContentsWithEditIcon(FolderContents):
     def get_columns(self, resource):
+        request = self.request
         columns = FolderContents.get_columns(self, resource)
         if resource is not None:
-            adapter = self.request.registry.queryMultiAdapter(
-                (resource, self.request), IEdit)
+            adapter = request.registry.queryMultiAdapter(
+                (resource, request), IEdit
+                )
             if adapter is not None:
                 for column in columns:
                     if column['name'] == 'Name':
                         if column['formatter'] == 'html':
-                            traverse = resource_path_tuple(resource)[1:]
-                            url = self.request.route_url(
-                                'sdexternaledit',
-                                traverse=traverse,
-                                )
-                            value = (' <a href="%s"><i class="icon-pencil">'
-                                     '</a></i>' % url)
-                            column['value'] += value
+                            column['value'] += pencil_icon(resource, request)
                         break
         return columns
 
@@ -171,12 +181,11 @@ def includeme(config): # pragma: no cover
     config.includepath = ('substanced:includeme',)
     # I am sorry for the above hack.  But it means that the statements
     # (particularly the add_folder_contents_views statement) made in this
-    # includeme will not conflict with (otherwise conflicting) statements made
-    # via config.include('substanced').  We want to override the default
-    # folder contents views, and the only other way to do that is to document
-    # that the user should config.commit() before including this package,
-    # which is awkward to document.  Maybe we can find a better way in the
-    # future.
+    # includeme will not conflict with otherwise conflicting statements made
+    # via config.include('substanced').  We want to override the default folder
+    # contents views, and the only other way to do that is to tell the user
+    # that he should config.commit() before including this package, which is
+    # awkward.
     prefix = config.registry.settings.get(
         'sdexternaledit.prefix', '/externaledit')
     non_slash_appended = prefix.rstrip('/')

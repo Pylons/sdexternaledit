@@ -54,7 +54,8 @@ class TestExternalEditorViews(unittest.TestCase):
         self.assertEqual(response.content_type, 'application/x-zope-edit')
         self.assertEqual(
             response.headers['Content-Disposition'],
-            'attachment; filename*="fred.zem"; filename="fred.zem"'
+            'attachment; filename*="=?utf-8?q?fred=2Ezem?="; '
+            'filename="fred.zem"'
             )
 
     def test_get_with_existing_locks(self):
@@ -94,7 +95,8 @@ class TestExternalEditorViews(unittest.TestCase):
         self.assertEqual(response.content_type, 'application/x-zope-edit')
         self.assertEqual(
             response.headers['Content-Disposition'],
-            'attachment; filename*="fred.zem"; filename="fred.zem"'
+            'attachment; filename*="=?utf-8?q?fred=2Ezem?="; '
+            'filename="fred.zem"'
             )
 
     def test_lock_with_lock_error(self):
