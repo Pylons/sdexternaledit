@@ -161,16 +161,14 @@ def pencil_icon(resource, request):
 class FolderContentsWithEditIcon(FolderContents):
     def get_columns(self, resource):
         request = self.request
+        registry = request.registry
         columns = FolderContents.get_columns(self, resource)
         if resource is not None:
-            adapter = request.registry.queryMultiAdapter(
-                (resource, request), IEdit
-                )
+            adapter = registry.queryMultiAdapter((resource, request), IEdit)
             if adapter is not None:
                 for column in columns:
-                    if column['name'] == 'Name':
-                        if column['formatter'] == 'html':
-                            column['value'] += pencil_icon(resource, request)
+                    if column['name']=='Name' and column['formatter']=='html':
+                        column['value'] += pencil_icon(resource, request)
                         break
         return columns
 
@@ -187,7 +185,9 @@ def includeme(config): # pragma: no cover
     # that he should config.commit() before including this package, which is
     # awkward.
     prefix = config.registry.settings.get(
-        'sdexternaledit.prefix', '/externaledit')
+        'sdexternaledit.prefix',
+        '/externaledit'
+        )
     non_slash_appended = prefix.rstrip('/')
     config.add_route(
         'sdexternaledit',
