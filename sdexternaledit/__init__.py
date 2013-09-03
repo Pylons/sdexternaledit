@@ -7,6 +7,7 @@ from pyramid.httpexceptions import (
     HTTPPreconditionFailed,
     HTTPNotFound,
     )
+from substanced.editable import IEditable
 from substanced.locking import (
     could_lock_resource,
     discover_resource_locks,
@@ -15,15 +16,11 @@ from substanced.locking import (
     lock_resource,
     unlock_resource,
     )
-from substanced.util import chunks
-from substanced.interfaces import IFile
 from substanced.sdi.views.folder import FolderContents
+
 from email.header import Header
 
 from ._compat import url_quote
-
-class IEdit(Interface):
-    pass
 
 class ExternalEditorViews(object):
 
@@ -45,7 +42,10 @@ class ExternalEditorViews(object):
     def get(self):
         request = self.request
         context = self.context
-        adapter = request.registry.queryMultiAdapter((context, request), IEdit)
+        adapter = request.registry.queryMultiAdapter(
+            (context, request),
+            IEditable
+            )
         if adapter is None:
             return HTTPNotFound()
         body, mimetype = adapter.get()
@@ -133,25 +133,14 @@ class ExternalEditorViews(object):
     def put(self):
         request = self.request
         context = self.context
-        adapter = request.registry.queryMultiAdapter((context, request), IEdit)
+        adapter = request.registry.queryMultiAdapter(
+            (context, request),
+            IEditable
+            )
         if adapter is None:
             return HTTPNotFound()
         adapter.put(request.body_file)
         return Response('OK', content_type='text/plain')
-
-class FileEdit(object):
-    def __init__(self, context, request):
-        self.context = context
-        self.request = request
-
-    def get(self):
-        return (
-            chunks(open(self.context.blob.committed(), 'rb')),
-            self.context.mimetype or 'application/octet-stream',
-            )
-
-    def put(self, fp):
-        self.context.upload(fp)
 
 def pencil_icon(resource, request):
     traverse = resource_path_tuple(resource)[1:]
@@ -164,7 +153,7 @@ class FolderContentsWithEditIcon(FolderContents):
         registry = request.registry
         columns = FolderContents.get_columns(self, resource)
         if resource is not None:
-            adapter = registry.queryMultiAdapter((resource, request), IEdit)
+            adapter = registry.queryMultiAdapter((resource, request), IEditable)
             if adapter is not None:
                 for column in columns:
                     if column['name']=='Name' and column['formatter']=='html':
@@ -172,9 +161,6 @@ class FolderContentsWithEditIcon(FolderContents):
                         break
         return columns
 
-def register_edit_adapter(config, adapter, iface): # pragma: no cover
-    config.registry.registerAdapter(adapter, (iface, Interface), IEdit)
-        
 def includeme(config): # pragma: no cover
     config.includepath = ('substanced:includeme',)
     # I am sorry for the above hack.  But it means that the statements
@@ -194,7 +180,5 @@ def includeme(config): # pragma: no cover
         pattern='%s/*traverse' % non_slash_appended
         )
     config.add_folder_contents_views(cls=FolderContentsWithEditIcon)
-    config.add_directive('register_edit_adapter', register_edit_adapter)
-    config.register_edit_adapter(FileEdit, IFile)
     config.scan()
 

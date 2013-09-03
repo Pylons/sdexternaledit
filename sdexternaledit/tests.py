@@ -22,11 +22,11 @@ class TestExternalEditorViews(unittest.TestCase):
         
     def test_get_no_existing_locks(self):
         from zope.interface import Interface
-        from . import IEdit
+        from substanced.editable import IEditable
         self.config.add_route('abc', '/')
         adapter = DummyEditAdapter((['abc'], 'application/foo'))
         self.config.registry.registerAdapter(
-            adapter, (Interface, Interface), IEdit
+            adapter, (Interface, Interface), IEditable
             )
         context = testing.DummyResource()
         context.__name__ = 'fred'
@@ -60,11 +60,11 @@ class TestExternalEditorViews(unittest.TestCase):
 
     def test_get_with_existing_locks(self):
         from zope.interface import Interface
-        from . import IEdit
+        from substanced.editable import IEditable
         self.config.add_route('abc', '/')
         adapter = DummyEditAdapter((['abc'], 'application/foo'))
         self.config.registry.registerAdapter(
-            adapter, (Interface, Interface), IEdit
+            adapter, (Interface, Interface), IEditable
             )
         context = testing.DummyResource()
         context.__name__ = 'fred'
@@ -173,64 +173,19 @@ class TestExternalEditorViews(unittest.TestCase):
     def test_put_gardenpath(self):
         from io import BytesIO
         from zope.interface import Interface
-        from . import IEdit
+        from substanced.editable import IEditable
         context = testing.DummyResource()
         request = testing.DummyRequest()
         body_file = BytesIO()
         request.body_file = body_file
         adapter = DummyEditAdapter(None)
         self.config.registry.registerAdapter(
-            adapter, (Interface, Interface), IEdit
+            adapter, (Interface, Interface), IEditable
             )
         inst = self._makeOne(context, request)
         response = inst.put()
         self.assertEqual(adapter.fp, body_file)
         self.assertEqual(response.text, 'OK')
-
-class TestFileEdit(unittest.TestCase):
-    def _makeOne(self, context, request):
-        from . import FileEdit
-        return FileEdit(context, request)
-
-    def test_get_context_has_mimetype(self):
-        context = testing.DummyResource()
-        context.mimetype = 'application/foo'
-        blob = testing.DummyResource()
-        here = __file__
-        def committed():
-            return here
-        blob.committed = committed
-        context.blob = blob
-        request = testing.DummyRequest()
-        inst = self._makeOne(context, request)
-        iterable, mimetype = inst.get()
-        self.assertEqual(mimetype, 'application/foo')
-        self.assertEqual(type(next(iterable)), bytes)
-
-    def test_get_context_has_no_mimetype(self):
-        context = testing.DummyResource()
-        context.mimetype = None
-        blob = testing.DummyResource()
-        here = __file__
-        def committed():
-            return here
-        blob.committed = committed
-        context.blob = blob
-        request = testing.DummyRequest()
-        inst = self._makeOne(context, request)
-        iterable, mimetype = inst.get()
-        self.assertEqual(mimetype, 'application/octet-stream')
-        self.assertEqual(type(next(iterable)), bytes)
-
-    def test_put(self):
-        context = testing.DummyResource()
-        fp = 'fp'
-        def upload(_fp):
-            self.assertEqual(_fp, fp)
-        context.upload = upload
-        request = testing.DummyRequest()
-        inst = self._makeOne(context, request)
-        inst.put(fp)
 
 class TestFolderContentsWithEditIcon(unittest.TestCase):
     def setUp(self):
@@ -269,7 +224,7 @@ class TestFolderContentsWithEditIcon(unittest.TestCase):
 
     def test_get_columns_resource_is_not_None_with_adapter(self):
         from zope.interface import Interface
-        from . import IEdit
+        from substanced.editable import IEditable
         context = testing.DummyResource()
         request = testing.DummyRequest()
         def metadata(rsrc, name, default=None):
@@ -279,7 +234,7 @@ class TestFolderContentsWithEditIcon(unittest.TestCase):
         request.sdiapi = DummySDIAPI()
         adapter = DummyEditAdapter(None)
         self.config.registry.registerAdapter(
-            adapter, (Interface, Interface), IEdit
+            adapter, (Interface, Interface), IEditable
             )
         self.config.add_route('sdexternaledit', '/')
         inst = self._makeOne(context, request)
