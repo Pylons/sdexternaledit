@@ -195,16 +195,16 @@ it, respectively.
            self.context.data = fp.read().decode('utf-8')
 
 Then in the configuration stage, after including ``sdexternaledit`` into the
-configuration, you can use the ``register_edit_adapter`` method of the
+configuration, you can use the ``register_editable_adapter`` method of the
 Configurator to associate the adapter with the content class:
 
 .. code-block:: python
 
    config.include('sdexternaledit')
-   config.register_edit_adapter(MyContentClassAdapter, MyContentClass)
+   config.register_editable_adapter(MyContentClassAdapter, MyContentClass)
 
-Instead of using a class argument as the 2nd arg to ``register_edit_adapter``,
-you can also use an interface.
+Instead of using a class argument as the 2nd arg to
+``register_editable_adapter``, you can also use an interface.
 
 Reporting Bugs / Development Versions
 -------------------------------------
