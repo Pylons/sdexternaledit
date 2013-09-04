@@ -1,5 +1,6 @@
+from email.header import Header
 import itertools
-from zope.interface import Interface
+
 from pyramid.response import Response
 from pyramid.traversal import resource_path_tuple
 from pyramid.view import view_config
@@ -18,9 +19,8 @@ from substanced.locking import (
     )
 from substanced.sdi.views.folder import FolderContents
 
-from email.header import Header
-
 from ._compat import url_quote
+
 
 class ExternalEditorViews(object):
 
@@ -153,7 +153,8 @@ class FolderContentsWithEditIcon(FolderContents):
         registry = request.registry
         columns = FolderContents.get_columns(self, resource)
         if resource is not None:
-            adapter = registry.queryMultiAdapter((resource, request), IEditable)
+            adapter = registry.queryMultiAdapter(
+                                            (resource, request), IEditable)
             if adapter is not None:
                 for column in columns:
                     if column['name']=='Name' and column['formatter']=='html':
@@ -181,4 +182,3 @@ def includeme(config): # pragma: no cover
         )
     config.add_folder_contents_views(cls=FolderContentsWithEditIcon)
     config.scan()
-
