@@ -1,5 +1,7 @@
 import unittest
+
 from pyramid import testing
+
 
 class TestExternalEditorViews(unittest.TestCase):
     def setUp(self):
@@ -199,7 +201,7 @@ class TestFolderContentsWithEditIcon(unittest.TestCase):
         return FolderContentsWithEditIcon(context, request)
 
     def test_get_columns_resource_is_None(self):
-        context = testing.DummyResource()
+        context = testing.DummyResource("testing")
         request = testing.DummyRequest()
         def metadata(rsrc, name, default=None):
             return None
@@ -211,7 +213,7 @@ class TestFolderContentsWithEditIcon(unittest.TestCase):
         self.assertEqual(columns, [])
         
     def test_get_columns_resource_is_not_None_no_adapter(self):
-        context = testing.DummyResource()
+        context = testing.DummyResource("testing")
         request = testing.DummyRequest()
         def metadata(rsrc, name, default=None):
             return None
@@ -225,7 +227,7 @@ class TestFolderContentsWithEditIcon(unittest.TestCase):
     def test_get_columns_resource_is_not_None_with_adapter(self):
         from zope.interface import Interface
         from substanced.editable import IEditable
-        context = testing.DummyResource()
+        context = testing.DummyResource("testing")
         request = testing.DummyRequest()
         def metadata(rsrc, name, default=None):
             return default
